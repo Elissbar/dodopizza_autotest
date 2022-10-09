@@ -13,24 +13,21 @@ class BasePage:
     def __init__(self, driver):
         self.driver = driver
         self.logging = logging.getLogger('test')
-        self.logging.debug(f'{self.__class__.__name__} page is opening')
 
     def wait(self, timeout=10):
         return WebDriverWait(self.driver, timeout)
 
     def find_element(self, locator, timeout=10):
-        # return self.wait(timeout).until(ES.presence_of_element_located(locator))
         try:
             elem = self.wait(timeout).until(ES.presence_of_element_located(locator))
+            # self.logging.debug(f'Поиск элемента: {locator[1]}')
             return elem
         except TimeoutException:
-            print(locator)
+            self.logging.debug(f'Элемент не найден: {locator[1]}')
             raise TimeoutException
 
     def find_child_element(self, parent_element, child_locator):
-        # parent_element = self.find_element(parent_locator)
         return WebDriverWait(parent_element, 5).until(ES.presence_of_element_located(child_locator))
-        # return self.find_element(parent_locator)
 
     def find_elements(self, locator, timeout=10):
         return self.wait(timeout).until(ES.presence_of_all_elements_located(locator))
@@ -39,23 +36,17 @@ class BasePage:
         action = ActionChains(self.driver)
         return action.move_to_element(element).perform()
 
-    def click_and_hold(self, element):
-        action = ActionChains(self.driver)
-        return action.click_and_hold(element).pause(5).perform()
-
-    def is_clickable(self, locator):
-        return self.wait().until(ES.element_to_be_clickable(locator))
-        # return self.wait().until(ES.visibility_of_element_located(locator))
-
-    def click(self, locator):
+    def click(self, locator=None):
         for i in range(CLICK_RETRY):
             try:
+                self.logging.debug(f'Попытка нажать на элемент: {locator[1]}')
                 self.find_element(locator)
-                elem = self.is_clickable(locator)
+                elem = self.wait().until(ES.element_to_be_clickable(locator))
                 self.move_to_element(elem)
                 elem.click()
                 return
             except:
+                self.logging.debug(f'Не удалось нажать на элемент: {locator[1]}')
                 if i == CLICK_RETRY-1:
                     raise
 
