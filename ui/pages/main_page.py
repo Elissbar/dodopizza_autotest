@@ -10,8 +10,8 @@ import time
 class MainPage(BasePage):
     locators = MainPageLocators()
 
-    def count_items(self, locator):
-        by, path = locator[0], locator[1] + '/article'
+    def count_items(self, locator, additional_locator=''):
+        by, path = locator[0], locator[1] + '/article' + additional_locator
         # articles = self.driver.find_element(locator[0], locator[1]).find_elements(locator[0], './article')
         articles = self.find_elements((by, path))
         return len(articles), articles
@@ -31,8 +31,11 @@ class MainPage(BasePage):
 
     def get_random_item(self, locator):
         items = self.count_items(locator)
-        current_item = items[1][random.randint(1, items[0])]
-        # current_item = items[1][13]
+        curr_int = random.randint(1, items[0]-1)
+        # curr_int = 31
+        print('Current int:', curr_int)
+        current_item = items[1][curr_int]
+        self.move_to_element(current_item)
         try:
             pizza_title = current_item.find_element(locator[0], './main/div').text # //section[@id="pizzas"]/article[4]/main/div
             pizza_price = current_item.find_element(locator[0], './footer/div[@class="product-control-price"]').text[3:6] # //section[@id="pizzas"]/article[4]/footer/div[@class="product-control-price"]
@@ -40,10 +43,19 @@ class MainPage(BasePage):
             pizza_title = current_item.find_element(locator[0], './div[@class="card-main"]/h3').text # //section[@id="pizzas"]/article[4]/main/div
             pizza_price = current_item.find_element(locator[0], './div[@class="card-main"]/button').text[:3] # //section[@id="pizzas"]/article[4]/footer/div[@class="product-control-price"]
         current_item.click()
-        self.find_element(self.locators.SIZE_PIZZA).click()
+        try:
+            self.find_element(self.locators.SIZE_PIZZA, timeout=2).click()
+        except:
+            pass
+        print('PIZZA TITLE 1:', repr(pizza_title))
+        pizza_title = re.findall(r'\w+\-*\w*\!*', pizza_title)
+        pizza_title = ' '.join(pizza_title)
+        print('PIZZA TITLE 2:', repr(pizza_title))
         pizza_title_in_dialog = self.find_element(self.locators.TITLE_IN_DIALOG(pizza_title)).text
         pizza_price_in_dialog = self.find_element(self.locators.PRICE_IN_DIALOG).text
-        self.find_element(self.locators.ADD_TO_BASKET).click()
+        print('HERE:', pizza_price_in_dialog, pizza_price_in_dialog)
+        # self.find_element(self.locators.ADD_TO_BASKET).click()
+        self.click(self.locators.ADD_TO_BASKET)
         return pizza_title, pizza_price, pizza_title_in_dialog, pizza_price_in_dialog
 
     def open_basket(self):
@@ -52,7 +64,7 @@ class MainPage(BasePage):
     def get_total_sum(self):
         elem = self.find_element(self.locators.TOTAL_BASKET_SUM)
         self.move_to_element(elem)
-        total_sum = re.findall('\d*', elem.get_attribute('textContent'))
+        total_sum = re.findall(r'\d+', elem.get_attribute('textContent'))
         return ''.join(total_sum)
         # return self.find_element(self.locators.TOTAL_BASKET_SUM).get_attribute('textContent').replace('₽', '').replace(' ', '')
 
@@ -65,7 +77,7 @@ class MainPage(BasePage):
             if '0' in price:
                 continue
             # print('item in for in', item)
-            title = self.find_child_element(item, (By.XPATH, './div/picture/../div/h3')).get_attribute('textContent')
+            title = self.find_child_element(item, (By.XPATH, './div/picture/../div/h3')).get_attribute('textContent').strip()
             count = self.find_child_element(item, (By.XPATH, './div[contains(@class, "-2")]/div[contains(@class, "-6")]/div/div')).get_attribute('textContent')
             # print('count is:', count)
             titles.extend([title]*int(count))
@@ -108,17 +120,32 @@ class MainPage(BasePage):
         return pizza_list
 
     def get_pizza_by_name(self, list):
-        pizza_list = []
+        pizza_prices = []
         for i in list:
-            path = f'./main/div[contains(text(), "{i}")]'
-            item = self.count_items(self.locators.PIZZA_SECTION)[1]
-            print('ITEM:', item)
-            elem = self.find_child_element(item, (By.XPATH, path))
+            self.click(self.locators.PIZZA_SECTION)
+            path = f'//main/div[contains(text(), "{i}")]'
+            try:
+                # item = self.count_items(self.locators.PIZZA_SECTION, additional_locator=path)[1][0]
+                self.click((By.XPATH, path))
+            except:
+                path = f'//div[@class="card-main"]/h3[contains(text(), "{i}")]/../../div'
+                item = self.click((By.XPATH, path))
+            try:
+                self.click(self.locators.SIZE_PIZZA)
+            except:
+                pass
+            price = self.find_element(self.locators.PRICE_IN_DIALOG).get_attribute('textContent')
+            pizza_prices.append(price)
+            self.click(self.locators.ADD_TO_BASKET)
+            # print(f'Add to basket: {i}')
+            while True:
+                try:
+                    self.wait().until(ES.invisibility_of_element_located(self.locators.PIZZA_DIALOG))
+                    break
+                except:
+                    self.click(self.locators.ADD_TO_BASKET)
 
-            print(elem.get_attribute('textContent'))
-            elem.click()
-
-        time.sleep(10)
+        return pizza_prices
 
 
 

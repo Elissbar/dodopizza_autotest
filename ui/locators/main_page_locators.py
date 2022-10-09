@@ -14,7 +14,8 @@ class MainPageLocators:
     PIZZA_DIALOG = (By.XPATH, '//div[contains(@data-testid, "product__card")]')
 
     # TITLE_IN_DIALOG = (By.XPATH, '//span[contains(text(), "")]')
-    TITLE_IN_DIALOG = lambda self, x: (By.XPATH, f'//span[text() = "{x}"]')
+    # TITLE_IN_DIALOG = lambda self, x: (By.XPATH, f'//span[text() = "{x}"]')
+    TITLE_IN_DIALOG = lambda self, x: (By.XPATH, f'//span[contains(text(), "{x}")]')
     NAME_IN_CART = (By.XPATH, '//span[contains(@class, "-12")]')
     PRICE_IN_DIALOG = (By.XPATH, '//button[@data-type="primary"]//span[contains(@class, "money__value")]')
 

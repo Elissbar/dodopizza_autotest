@@ -1,6 +1,8 @@
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ES
+from selenium.common.exceptions import TimeoutException
+import logging
 
 
 CLICK_RETRY = 3
@@ -10,12 +12,20 @@ class BasePage:
 
     def __init__(self, driver):
         self.driver = driver
+        self.logging = logging.getLogger('test')
+        self.logging.debug(f'{self.__class__.__name__} page is opening')
 
     def wait(self, timeout=10):
         return WebDriverWait(self.driver, timeout)
 
     def find_element(self, locator, timeout=10):
-        return self.wait(timeout).until(ES.presence_of_element_located(locator))
+        # return self.wait(timeout).until(ES.presence_of_element_located(locator))
+        try:
+            elem = self.wait(timeout).until(ES.presence_of_element_located(locator))
+            return elem
+        except TimeoutException:
+            print(locator)
+            raise TimeoutException
 
     def find_child_element(self, parent_element, child_locator):
         # parent_element = self.find_element(parent_locator)
