@@ -130,3 +130,4 @@ dmypy.json
 .idea/
 .pytest_cache
 __pychache__
+artifacts/
