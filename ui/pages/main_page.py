@@ -139,7 +139,10 @@ class MainPage(BasePage):
         titles = []
         prices = []
         for i in range(number):
-            current_item = items[1][random.randint(1, items[0]-1)]
+            curr_int = random.randint(1, items[0]-1)
+            while curr_int == 3:
+                curr_int = random.randint(1, items[0]-1)
+            current_item = items[1][curr_int]
             self.move_to_element(current_item)
             current_item.click()
             title = self.find_element(self.locators.PARAMETRIZE_PIZZA["title_pizza"]).get_attribute('textContent') # Название пиццы в окне параметризации
