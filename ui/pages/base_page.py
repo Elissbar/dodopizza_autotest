@@ -39,7 +39,7 @@ class BasePage:
     def click(self, locator=None):
         for i in range(CLICK_RETRY):
             try:
-                self.logging.debug(f'Попытка нажать на элемент: {locator[1]}')
+                self.logging.debug(f'Клик на элемент: {locator[1]}')
                 self.find_element(locator)
                 elem = self.wait().until(ES.element_to_be_clickable(locator))
                 self.move_to_element(elem)

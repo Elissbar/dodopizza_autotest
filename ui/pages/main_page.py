@@ -20,6 +20,7 @@ class MainPage(BasePage):
         return len(articles), articles
 
     def add_to_basket(self):
+        self.logging.debug(f'Добавление товара в корзину')
         """
         В Google Chrome при добавлении 3 и 5 пицц происходит баг,
         на запрос возвращается 400 статус код и пицца не добавляется в корзину,
@@ -27,17 +28,19 @@ class MainPage(BasePage):
 
         Добавляем пиццу в корзину
         Если окно параметризации пропадает спустя 5 сек после клика - пицца была добавлена
-        Если окно не пропадает само, мы его закрываем и пытаемся добавить следующую пиццу
+        Если окно не пропадает, мы его закрываем и пытаемся добавить следующую пиццу
         :return: bool - пицца добавилась или нет
         """
         try:
             self.click(self.locators.ADD_TO_BASKET)
             self.wait(timeout=5).until(ES.invisibility_of_element_located(self.locators.PIZZA_DIALOG))
+            self.logging.debug(f'Товар был добавлен в корзину')
             return True
         except:
             parametrize_pizza = self.find_element(self.locators.PIZZA_DIALOG)
             close = self.find_child_element(parametrize_pizza, self.locators.PARAMETRIZE_PIZZA["close_icon"])
             close.click()
+            self.logging.debug(f'Товар не был добавлен в корзину')
             return False
 
     def current_item_data(self, current_item):
@@ -60,6 +63,7 @@ class MainPage(BasePage):
         """
         elem = self.find_element(self.locators.BASKET["total_sum"])
         total_sum = re.findall(r'\d+', elem.get_attribute('textContent'))
+        self.logging.debug(f'Получение полной суммы: {"".join(total_sum)}')
         return ''.join(total_sum)
 
     def delete_from_basket(self):
@@ -102,10 +106,12 @@ class MainPage(BasePage):
         Выбираем рандомную пиццу из общего списка
         В тест возвращаем название и цену пиццы из главного меню, а также название и цену пиццы из окна параметризации
         :param locator:
-        :return: (название из главного меню, цена из главного меню, название из окна, цена из окна)
+        :return: tuple - (название из главного меню, цена из главного меню, название из окна, цена из окна)
         """
         items = self.count_items(locator)
         curr_int = random.randint(1, items[0]-1)
+        while curr_int == 3:
+            curr_int = random.randint(1, items[0]-1)
         current_item = items[1][curr_int]
         self.move_to_element(current_item)
         pizza_title, pizza_price = self.current_item_data(current_item)
