@@ -16,7 +16,7 @@ def config():
     Сбор тестовых данных из файла data.json
     :return: dict - тестовые данные
     """
-    data = open(os.path.join(root_dir, 'data.json'), 'r')
+    data = open(os.path.join(root_dir, 'data.json'), 'r', encoding='utf-8')
     data = json.loads(data.read())
     for key, value in data.items():
         try:
@@ -44,8 +44,11 @@ def driver(config, logger):
     """
     Инициализация браузера и открытие страницы
     """
+    options = webdriver.ChromeOptions()
+    options.add_argument('--ignore-certificate-errors-spki-list')
+    options.add_argument('--ignore-ssl-errors')
     manager = ChromeDriverManager(version='latest')
-    browser = webdriver.Chrome(executable_path=manager.install())
+    browser = webdriver.Chrome(executable_path=manager.install(), chrome_options=options)
     browser.maximize_window()
     logger.debug(f'Переход на страницу: {config["url"]}')
     browser.get(config['url'])
