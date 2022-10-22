@@ -27,6 +27,7 @@ class BasePage:
             raise TimeoutException
 
     def find_elements(self, locator, timeout=15):
+        self.logging.debug(f'Элемент не найден: {locator[1]}')
         return self.wait(timeout).until(ES.presence_of_all_elements_located(locator))
 
     def find_child_element(self, parent_element, child_locator): # Ненужная функция

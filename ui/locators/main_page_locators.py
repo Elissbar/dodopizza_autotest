@@ -40,6 +40,7 @@ class MainPageLocators:
         "price_pizza": (By.XPATH, '//button[@data-type="primary"]//span[contains(@class, "_value")]'),
         "small_size": (By.XPATH, '//label[@data-testid="menu__pizza_size_1"]'),
         "close_icon": (By.XPATH, './../i'),
+        "half_pizza": (By.XPATH, '//div[contains(@class, "sc-10")]/div[contains(@class, "-2 ")]')
         # "two_half_pizza": (By.XPATH, '//div[contains(text(), "Выберите пиццы для левой")]/../div[contains(@class, "-2")]'),
     }
     PIZZA_DIALOG = (By.XPATH, '//div[contains(@data-testid, "product__card")]')

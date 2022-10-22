@@ -9,23 +9,21 @@ import re
 class MainPage(BasePage):
     locators = MainPageLocators()
 
-    def random_items(self, locator, num):
-        items = self.count_items(locator)
+    def random_items(self, locator, additional_locator='/article', num=1):
+        items = self.count_items(locator, additional_locator)
         new_items = []
         for i in range(num):
             rand_int = random.randint(0, len(items)-1)
-            new_items.append(items[rand_int])
+            new_items.append(items[1])
         return new_items
 
-
-    def count_items(self, locator):
+    def count_items(self, locator, additional_locator='/article'):
         """
         Ищем элементы в секции, например пицца в общем списке или товары в корзине
         :param locator:
         :return: кол-во элементов в секции, сами элементы
         """
-        locator = (By.XPATH, locator[1] + '/article')
-        # articles = self.find_elements(locator)
+        locator = (By.XPATH, locator[1] + additional_locator)
         return self.find_elements(locator)
 
     def add_to_basket(self, title_in_dialog):
@@ -52,14 +50,20 @@ class MainPage(BasePage):
             self.logging.debug(f'Товар не был добавлен в корзину: {title_in_dialog}')
             return False
 
-    def current_item_data(self, current_item):
+    def current_item_data(self, items):
         """
         Возвращает название и цену пиццы из главного меню (то, что указано в карточке товара)
         :return: (title, price)
         """
-        pizza_title = current_item.find_element(*self.locators.MAIN_MENU["title_item"]).text
-        pizza_price = current_item.find_element(*self.locators.MAIN_MENU["price_item"]).text
-        return pizza_title, int(re.search(r'\d+', pizza_price).group(0))
+        data_items = []
+        for item in items:
+            pizza_title = item.find_element(*self.locators.MAIN_MENU["title_item"]).text
+            pizza_title = re.search(r'(\w+.*\w+\!?)', pizza_title).group(0)
+            pizza_price = item.find_element(*self.locators.MAIN_MENU["price_item"]).text
+            pizza_price = int(re.search(r'\d+', pizza_price).group(0))
+            print('HERE:', pizza_title, pizza_price)
+            data_items.append([pizza_title, pizza_price])
+        return data_items
         # try:
         #     pizza_title = current_item.find_element(*self.locators.MAIN_MENU["common_pizza_title"]).text
         #     pizza_price = current_item.find_element(*self.locators.MAIN_MENU["common_pizza_price"]).text[3:6]
@@ -113,16 +117,32 @@ class MainPage(BasePage):
             titles.extend([title]*int(count))
         return titles
 
-    def add_items_count(self, locator, count):
-        items = self.count_items(locator)
+    def half_pizza(self, item):
+        import time
+        item.click()
+        time.sleep(5)
+        # halves = self.count_items(self.locators.PARAMETRIZE_PIZZA["half_pizza"], additional_locator='')
+        half_items = self.random_items(self.locators.PARAMETRIZE_PIZZA["half_pizza"], additional_locator='', num=2)
+        for half_item in half_items:
+            self.move_to_element(half_item)
+            half_item.click()
+        time.sleep(5)
+
+
+    def add_items_count(self, items):
+        # items = self.count_items(locator)
         added_items = []
-        for i in range(count):
-            rand_int = random.randint(0, len(items)-1)
-            current_item = items[rand_int]
-            self.move_to_element(current_item)
-            pizza_title, _ = self.current_item_data(current_item)
-            yield pizza_title
-            current_item.click()
+        for item in items:
+            # rand_int = random.randint(0, len(items)-1)
+            # current_item = items[rand_int]
+            self.move_to_element(item)
+            item_title = self.current_item_data([item])[0][0]
+            if item_title == 'Пицца из половинок':
+                self.half_pizza(item)
+                return
+            # pizza_title, _ = self.current_item_data(current_item)
+            # yield pizza_title
+            item.click()
             try:
                 self.find_element(self.locators.PARAMETRIZE_PIZZA["small_size"], timeout=5).click()
             except:
@@ -132,8 +152,7 @@ class MainPage(BasePage):
             if self.add_to_basket(title_in_dialog):
                 added_items.append([title_in_dialog, price_in_dialog])
         self.delete_from_basket()
-        return
-        # return added_items
+        return added_items
 
     def get_random_item(self, locator):
         """
@@ -154,7 +173,7 @@ class MainPage(BasePage):
             self.find_element(self.locators.PARAMETRIZE_PIZZA["pizza_size"], timeout=2).click()
         except:
             pass
-        pizza_title = re.findall(r'\w+\-*\w*\!*', pizza_title)
+        pizza_title = re.findall(r'(\w+.*\w+\!?)', pizza_title)
         pizza_title = ' '.join(pizza_title)
         pizza_title_in_dialog = self.find_element(self.locators.PARAMETRIZE_PIZZA["title_pizza"]).text # Название пиццы в окне параметризации
         pizza_price_in_dialog = self.find_element(self.locators.PARAMETRIZE_PIZZA["price_pizza"]).text # Цена пиццы в окне параметризации
