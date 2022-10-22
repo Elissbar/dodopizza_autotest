@@ -14,10 +14,10 @@ class BasePage:
         self.driver = driver
         self.logging = logging.getLogger('test')
 
-    def wait(self, timeout=10):
+    def wait(self, timeout=15):
         return WebDriverWait(self.driver, timeout)
 
-    def find_element(self, locator, timeout=10):
+    def find_element(self, locator, timeout=15):
         try:
             elem = self.wait(timeout).until(ES.presence_of_element_located(locator))
             # self.logging.debug(f'Поиск элемента: {locator[1]}')
@@ -26,11 +26,11 @@ class BasePage:
             self.logging.debug(f'Элемент не найден: {locator[1]}')
             raise TimeoutException
 
-    def find_child_element(self, parent_element, child_locator):
-        return WebDriverWait(parent_element, 5).until(ES.presence_of_element_located(child_locator))
-
-    def find_elements(self, locator, timeout=10):
+    def find_elements(self, locator, timeout=15):
         return self.wait(timeout).until(ES.presence_of_all_elements_located(locator))
+
+    def find_child_element(self, parent_element, child_locator): # Ненужная функция
+        return WebDriverWait(parent_element, 15).until(ES.presence_of_element_located(child_locator))
 
     def move_to_element(self, element):
         action = ActionChains(self.driver)

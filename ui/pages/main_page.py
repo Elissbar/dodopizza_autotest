@@ -9,6 +9,15 @@ import re
 class MainPage(BasePage):
     locators = MainPageLocators()
 
+    def random_items(self, locator, num):
+        items = self.count_items(locator)
+        new_items = []
+        for i in range(num):
+            rand_int = random.randint(0, len(items)-1)
+            new_items.append(items[rand_int])
+        return new_items
+
+
     def count_items(self, locator):
         """
         Ищем элементы в секции, например пицца в общем списке или товары в корзине
@@ -16,11 +25,11 @@ class MainPage(BasePage):
         :return: кол-во элементов в секции, сами элементы
         """
         locator = (By.XPATH, locator[1] + '/article')
-        articles = self.find_elements(locator)
-        return len(articles), articles
+        # articles = self.find_elements(locator)
+        return self.find_elements(locator)
 
-    def add_to_basket(self):
-        self.logging.debug(f'Добавление товара в корзину')
+    def add_to_basket(self, title_in_dialog):
+        self.logging.debug(f'Добавление товара в корзину: {title_in_dialog}')
         """
         В Google Chrome при добавлении 3 и 5 пицц происходит баг,
         на запрос возвращается 400 статус код и пицца не добавляется в корзину,
@@ -33,14 +42,14 @@ class MainPage(BasePage):
         """
         try:
             self.click(self.locators.ADD_TO_BASKET)
-            self.wait(timeout=5).until(ES.invisibility_of_element_located(self.locators.PIZZA_DIALOG))
-            self.logging.debug(f'Товар был добавлен в корзину')
+            self.wait(timeout=1).until(ES.invisibility_of_element_located(self.locators.PIZZA_DIALOG))
+            self.logging.debug(f'Товар был добавлен в корзину: {title_in_dialog}')
             return True
         except:
             parametrize_pizza = self.find_element(self.locators.PIZZA_DIALOG)
             close = self.find_child_element(parametrize_pizza, self.locators.PARAMETRIZE_PIZZA["close_icon"])
             close.click()
-            self.logging.debug(f'Товар не был добавлен в корзину')
+            self.logging.debug(f'Товар не был добавлен в корзину: {title_in_dialog}')
             return False
 
     def current_item_data(self, current_item):
@@ -48,13 +57,16 @@ class MainPage(BasePage):
         Возвращает название и цену пиццы из главного меню (то, что указано в карточке товара)
         :return: (title, price)
         """
-        try:
-            pizza_title = current_item.find_element(*self.locators.MAIN_MENU["common_pizza_title"]).text
-            pizza_price = current_item.find_element(*self.locators.MAIN_MENU["common_pizza_price"]).text[3:6]
-        except:
-            pizza_title = current_item.find_element(*self.locators.MAIN_MENU["special_pizza_title"]).text
-            pizza_price = current_item.find_element(*self.locators.MAIN_MENU["special_pizza_price"]).text[:3]
-        return pizza_title, pizza_price
+        pizza_title = current_item.find_element(*self.locators.MAIN_MENU["title_item"]).text
+        pizza_price = current_item.find_element(*self.locators.MAIN_MENU["price_item"]).text
+        return pizza_title, int(re.search(r'\d+', pizza_price).group(0))
+        # try:
+        #     pizza_title = current_item.find_element(*self.locators.MAIN_MENU["common_pizza_title"]).text
+        #     pizza_price = current_item.find_element(*self.locators.MAIN_MENU["common_pizza_price"]).text[3:6]
+        # except:
+        #     pizza_title = current_item.find_element(*self.locators.MAIN_MENU["special_pizza_title"]).text
+        #     pizza_price = current_item.find_element(*self.locators.MAIN_MENU["special_pizza_price"]).text[:3]
+        # return pizza_title, pizza_price
 
     def get_total_sum(self):
         """
@@ -73,14 +85,14 @@ class MainPage(BasePage):
         """
         self.click(self.locators.BASKET["button_basket"])
         items = self.count_items(self.locators.BASKET["items"])
-        for item in items[1]:
+        for item in items:
             self.move_to_element(item)
             price = self.find_child_element(item, self.locators.BASKET["item_price"]).get_attribute('textContent')
             if '0' in price:
                 delete_button = self.find_child_element(item, self.locators.BASKET["delete_item"])
                 bottom = self.find_element(self.locators.BASKET["total_sum"])
                 self.move_to_element(bottom)
-                self.driver.implicitly_wait(10)
+                self.driver.implicitly_wait(1)
                 delete_button.click()
         self.click(self.locators.BASKET["basket_close"])
 
@@ -92,7 +104,7 @@ class MainPage(BasePage):
         self.click(self.locators.BASKET["button_basket"])
         items = self.count_items(self.locators.BASKET["items"])
         titles = []
-        for item in items[1]:
+        for item in items:
             price = self.find_child_element(item, self.locators.BASKET["item_price"]).get_attribute('textContent')
             if '0' in price:
                 continue
@@ -100,6 +112,28 @@ class MainPage(BasePage):
             count = self.find_child_element(item, self.locators.BASKET["item_count"]).get_attribute('textContent')
             titles.extend([title]*int(count))
         return titles
+
+    def add_items_count(self, locator, count):
+        items = self.count_items(locator)
+        added_items = []
+        for i in range(count):
+            rand_int = random.randint(0, len(items)-1)
+            current_item = items[rand_int]
+            self.move_to_element(current_item)
+            pizza_title, _ = self.current_item_data(current_item)
+            yield pizza_title
+            current_item.click()
+            try:
+                self.find_element(self.locators.PARAMETRIZE_PIZZA["small_size"], timeout=5).click()
+            except:
+                pass
+            title_in_dialog = self.find_element(self.locators.PARAMETRIZE_PIZZA["title_pizza"]).text # Название пиццы в окне параметризации
+            price_in_dialog = self.find_element(self.locators.PARAMETRIZE_PIZZA["price_pizza"]).text
+            if self.add_to_basket(title_in_dialog):
+                added_items.append([title_in_dialog, price_in_dialog])
+        self.delete_from_basket()
+        return
+        # return added_items
 
     def get_random_item(self, locator):
         """

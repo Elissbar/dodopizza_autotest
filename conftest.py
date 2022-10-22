@@ -75,6 +75,8 @@ def make_screenshot(config, driver, test_dir):
     yield
     path_screenshot = os.path.join(test_dir, 'screenshot.png')
     driver.save_screenshot(path_screenshot)
+    # screenshot_file = os.path.join(test_dir, 'failure.png')
+    # driver.get_screenshot_as_file(screenshot_file)
 
 
 @pytest.fixture(scope='function')

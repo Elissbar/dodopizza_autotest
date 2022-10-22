@@ -17,35 +17,31 @@ class TestSuite(BaseCase):
         assert pizza_count == self.config["total_pizza_count"]
 
     def test_case_1(self):
-        self.logging.debug(f'Проверка соотвествия страницы')
+        pizza_count = 1
         assert self.driver.current_url == "https://dodopizza.ru/moscow"
-        self.logging.debug(f'Переход в раздел: "Пицца"')
         self.main_page.find_element(self.main_page.locators.NAV_BAR["Пицца"]).click()
-        pizza_title, pizza_price, pizza_title_in_dialog, pizza_price_in_dialog = self.main_page.get_random_item(self.main_page.locators.PIZZA_SECTION)
-        basket = self.main_page.find_element(self.main_page.locators.BASKET_COUNT_ITEMS).text
-        self.logging.debug(f'Проверка результатов. Наименование и цена из главного меню: {pizza_title}, {pizza_price}')
-        self.logging.debug(f'Проверка результатов. Наименование и цена из окна параметризации: {pizza_title_in_dialog}, {pizza_price_in_dialog}')
-        assert pizza_title == pizza_title_in_dialog
-        assert pizza_price == pizza_price_in_dialog
-        assert int(basket) == 1
+        items = self.main_page.random_items(self.main_page.locators.PIZZA_SECTION, pizza_count)
 
-    # @pytest.mark.xfail
+        # added_items = self.main_page.add_items_count(self.main_page.locators.PIZZA_SECTION, pizza_count)
+        # basket = self.main_page.find_element(self.main_page.locators.BASKET_COUNT_ITEMS).text
+        # items_in_basket = self.main_page.items_from_basket()
+        # assert int(basket) == pizza_count
+        # for item in [title[0] for title in added_items]:
+        #     assert item in items_in_basket
+
     def test_case_2(self):
         pizza_count = self.config["add_pizza_count"]
-        self.logging.debug(f'Проверка соотвествия страницы')
         assert self.driver.current_url == "https://dodopizza.ru/moscow"
-        self.logging.debug(f'Переход в раздел: "Пицца"')
         self.main_page.find_element(self.main_page.locators.NAV_BAR["Пицца"]).click()
-        names, prices = self.main_page.get_number_pizza(self.main_page.locators.PIZZA_SECTION, pizza_count)
+        added_items = self.main_page.add_items_count(self.main_page.locators.PIZZA_SECTION, pizza_count)
+        print(added_items)
+        titles = [title[0] for title in added_items]
+        prices = [int(title[1]) for title in added_items]
         count = self.main_page.find_element(self.main_page.locators.BASKET_COUNT_ITEMS).text
-        self.logging.debug(f'Получение кол-ва товаров в корзине: {count}')
-        items = self.main_page.items_from_basket()
-        self.logging.debug(f'Получение самих товаров из корзине: {items}')
-        self.logging.debug(f'Проверка результатов')
-        for name in names:
-            assert name in items
+        items_in_basket = self.main_page.items_from_basket()
+        for item in titles:
+            assert item in items_in_basket
         assert sum(prices) == int(self.main_page.get_total_sum())
-        self.logging.debug(f'Ожидаемое кол-во товаров: {pizza_count}. Фактическое кол-во товаров: {count}')
         assert int(count) == pizza_count
 
     def test_case_3(self):
