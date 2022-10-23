@@ -45,8 +45,6 @@ def driver(config, logger):
     Инициализация браузера и открытие страницы
     """
     options = webdriver.ChromeOptions()
-    options.add_argument('--ignore-certificate-errors-spki-list')
-    options.add_argument('--ignore-ssl-errors')
     manager = ChromeDriverManager(version='latest')
     browser = webdriver.Chrome(executable_path=manager.install(), chrome_options=options)
     browser.maximize_window()
@@ -57,14 +55,11 @@ def driver(config, logger):
 
 
 @pytest.fixture(scope='function')
-def test_dir(request, config):
-    """
-    Директория для каждого теста отдельная, для хранения артефактов (логи, скриншоты)
-    """
-    test_name = request.node.nodeid.replace(':', '_')
-    test_dir_name = os.path.join(request.config.artifacts, test_name)
-    os.makedirs(test_dir_name)
-    return test_dir_name
+def test_dir(request):
+    test_name = request._pyfuncitem.nodeid.replace('/', '_').replace(':', '_')
+    test_dir = os.path.join(request.config.artifacts, test_name)
+    os.makedirs(test_dir)
+    return test_dir
 
 
 @pytest.fixture(scope='function', autouse=True)
@@ -75,32 +70,29 @@ def make_screenshot(config, driver, test_dir):
     yield
     path_screenshot = os.path.join(test_dir, 'screenshot.png')
     driver.save_screenshot(path_screenshot)
-    # screenshot_file = os.path.join(test_dir, 'failure.png')
-    # driver.get_screenshot_as_file(screenshot_file)
 
 
 @pytest.fixture(scope='function')
 def logger(config, test_dir):
-    """
-    Фикстура, отвечающая за логирование тестов
-    """
-    logger = logging.getLogger('test')
+    log_formatter = logging.Formatter('%(asctime)s - %(filename)-s - %10(levelname)-s: %(message)s')
+    log_file = os.path.join(test_dir, 'test.log')
 
-    path = os.path.join(test_dir, 'log_file.txt')
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    file_handler = logging.FileHandler(path, 'w')
-    file_handler.setFormatter(formatter)
-    file_handler.setLevel(logging.DEBUG)
+    # log_level = logging.DEBUG if config['debug_log'] else logging.INFO
+    log_level = logging.DEBUG
 
-    logger.addHandler(file_handler)
-    logger.setLevel(logging.DEBUG)
-    logger.propagate = False
+    file_handler = logging.FileHandler(log_file, 'w')
+    file_handler.setFormatter(log_formatter)
+    file_handler.setLevel(log_level)
 
-    yield logger
+    log = logging.getLogger('test')
+    log.propagate = False
+    log.setLevel(log_level)
+    log.addHandler(file_handler)
 
-    for i in logger.handlers:
-        i.close()
+    yield log
 
+    for handler in log.handlers:
+        handler.close()
 
 
 

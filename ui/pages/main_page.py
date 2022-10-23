@@ -9,22 +9,30 @@ import re
 class MainPage(BasePage):
     locators = MainPageLocators()
 
-    def random_items(self, locator, additional_locator='/article', num=1):
-        items = self.count_items(locator, additional_locator)
+    def random_items(self, locator, num=1):
+        """
+        Возвращает num-рандомных элементов из списка
+        :param locator: tuple - Локатор секции
+        :param num: int - кол-во рандомных элементов
+        :return: list - Список элементов
+        """
+        items = self.count_items(locator)
         new_items = []
         for i in range(num):
             rand_int = random.randint(0, len(items)-1)
-            new_items.append(items[1])
+            self.logging.debug(f'Рандомно выбранный индекс: {rand_int+1}')
+            new_items.append(items[rand_int])
         return new_items
 
     def count_items(self, locator, additional_locator='/article'):
         """
-        Ищем элементы в секции, например пицца в общем списке или товары в корзине
-        :param locator:
-        :return: кол-во элементов в секции, сами элементы
+        Поиск элементов в секции, например пицца в общем списке или товары в корзине
+        :param locator: tuple - Локатор секции
+        :param additional_locator: string - доп.локатор
+        :return: list - Элементы в секции
         """
-        locator = (By.XPATH, locator[1] + additional_locator)
-        return self.find_elements(locator)
+        new_locator = (By.XPATH, locator[1] + additional_locator)
+        return self.find_elements(new_locator)
 
     def add_to_basket(self, title_in_dialog):
         self.logging.debug(f'Добавление товара в корзину: {title_in_dialog}')
@@ -34,13 +42,15 @@ class MainPage(BasePage):
         чтобы обойти баг нужно нажимать более 1 раза (От 3 до 5 раз)
 
         Добавляем пиццу в корзину
-        Если окно параметризации пропадает спустя 5 сек после клика - пицца была добавлена
+        Если окно параметризации пропадает спустя 5 сек после клика - пицца была добавлена успешно
         Если окно не пропадает, мы его закрываем и пытаемся добавить следующую пиццу
-        :return: bool - пицца добавилась или нет
+        
+        :param title_in_dialog: string - Наименование товара
+        :return: bool - True, если пицца была добавлена, False, если пицца не была добавлена
         """
         try:
             self.click(self.locators.ADD_TO_BASKET)
-            self.wait(timeout=1).until(ES.invisibility_of_element_located(self.locators.PIZZA_DIALOG))
+            self.wait(timeout=10).until(ES.invisibility_of_element_located(self.locators.PIZZA_DIALOG))
             self.logging.debug(f'Товар был добавлен в корзину: {title_in_dialog}')
             return True
         except:
@@ -53,29 +63,25 @@ class MainPage(BasePage):
     def current_item_data(self, items):
         """
         Возвращает название и цену пиццы из главного меню (то, что указано в карточке товара)
-        :return: (title, price)
+        :return: dict - Словарь с названиями и ценами
         """
-        data_items = []
+        data_items = {
+            "titles": [],
+            "prices": []
+        }
         for item in items:
             pizza_title = item.find_element(*self.locators.MAIN_MENU["title_item"]).text
             pizza_title = re.search(r'(\w+.*\w+\!?)', pizza_title).group(0)
             pizza_price = item.find_element(*self.locators.MAIN_MENU["price_item"]).text
             pizza_price = int(re.search(r'\d+', pizza_price).group(0))
-            print('HERE:', pizza_title, pizza_price)
-            data_items.append([pizza_title, pizza_price])
+            data_items["titles"].append(pizza_title)
+            data_items["prices"].append(pizza_price)
         return data_items
-        # try:
-        #     pizza_title = current_item.find_element(*self.locators.MAIN_MENU["common_pizza_title"]).text
-        #     pizza_price = current_item.find_element(*self.locators.MAIN_MENU["common_pizza_price"]).text[3:6]
-        # except:
-        #     pizza_title = current_item.find_element(*self.locators.MAIN_MENU["special_pizza_title"]).text
-        #     pizza_price = current_item.find_element(*self.locators.MAIN_MENU["special_pizza_price"]).text[:3]
-        # return pizza_title, pizza_price
 
     def get_total_sum(self):
         """
-        Возвращаем полную сумму из корзины
-        :return: total_sum - полная сумма
+        Возвращает полную сумму из корзины
+        :return: string - Полная сумма товаров
         """
         elem = self.find_element(self.locators.BASKET["total_sum"])
         total_sum = re.findall(r'\d+', elem.get_attribute('textContent'))
@@ -92,139 +98,117 @@ class MainPage(BasePage):
         for item in items:
             self.move_to_element(item)
             price = self.find_child_element(item, self.locators.BASKET["item_price"]).get_attribute('textContent')
-            if '0' in price:
+            price = int(re.search(r'\d+', price).group(0))
+            if price == 0:
                 delete_button = self.find_child_element(item, self.locators.BASKET["delete_item"])
                 bottom = self.find_element(self.locators.BASKET["total_sum"])
                 self.move_to_element(bottom)
-                self.driver.implicitly_wait(1)
+                self.driver.implicitly_wait(10)
                 delete_button.click()
         self.click(self.locators.BASKET["basket_close"])
+        return self.wait(timeout=10).until(ES.invisibility_of_element_located(self.locators.BASKET["items"]))
 
     def items_from_basket(self):
         """
         Собирает названия товаров, добавленных в корзину, игнорирует подарки
-        :return: list - массив названий товаров
+        :return: list - Массив названий товаров
         """
         self.click(self.locators.BASKET["button_basket"])
         items = self.count_items(self.locators.BASKET["items"])
         titles = []
         for item in items:
             price = self.find_child_element(item, self.locators.BASKET["item_price"]).get_attribute('textContent')
-            if '0' in price:
+            price = int(re.search(r'\d+', price).group(0))
+            if price == 0:
                 continue
-            title = self.find_child_element(item, self.locators.BASKET["item_title"]).get_attribute('textContent').strip()
+            title = self.find_child_element(item, self.locators.BASKET["item_title"]).get_attribute('innerText')
             count = self.find_child_element(item, self.locators.BASKET["item_count"]).get_attribute('textContent')
             titles.extend([title]*int(count))
         return titles
 
-    def half_pizza(self, item):
-        import time
-        item.click()
-        time.sleep(5)
-        # halves = self.count_items(self.locators.PARAMETRIZE_PIZZA["half_pizza"], additional_locator='')
-        half_items = self.random_items(self.locators.PARAMETRIZE_PIZZA["half_pizza"], additional_locator='', num=2)
-        for half_item in half_items:
-            self.move_to_element(half_item)
-            half_item.click()
-        time.sleep(5)
+    def half_pizza(self, card):
+        """
+        Обрабатывает добавление пицц, состоящей из половинок
 
+        :param card: Карточка товара
+        :return: list - Массив названий товаров / False - Если товар не был добавлен
+        """
+        card.click()
+        items = self.count_items(self.locators.HALF_PIZZA_WINDOW["halves"], additional_locator='')
+        indexes = [random.randint(0, len(items)-1) for _ in range(2)]
+        while indexes[0] == indexes[1]:
+            indexes[1] = random.randint(0, len(items)-1)
+        indexes = sorted(indexes)
+        full_title = []
+        for ind in indexes:
+            half = items[ind]
+            self.move_to_element(half)
+            title = self.find_child_element(half, self.locators.HALF_PIZZA_WINDOW["title"]).text
+            full_title.append(title)
+            half.click()
+        price = self.find_element(self.locators.PARAMETRIZE_PIZZA["price_pizza"]).text
+        if self.add_to_basket(' + '.join(full_title)):
+            return ' + '.join(full_title), int(price)
+        return False
 
     def add_items_count(self, items):
-        # items = self.count_items(locator)
-        added_items = []
+        """
+        Добавляет переданные элементы, возвращает словарь только с теми элементами, которые были добавлены в корзину
+
+        :param items: Список элементов
+        :return: dict - Словарь с названиями и ценами
+        """
+        added_items = {
+            "titles": [],
+            "prices": []
+        }
         for item in items:
-            # rand_int = random.randint(0, len(items)-1)
-            # current_item = items[rand_int]
             self.move_to_element(item)
-            item_title = self.current_item_data([item])[0][0]
+            item_title = self.current_item_data([item])["titles"][0]
             if item_title == 'Пицца из половинок':
-                self.half_pizza(item)
-                return
-            # pizza_title, _ = self.current_item_data(current_item)
-            # yield pizza_title
+                half_pizza = self.half_pizza(item)
+                if half_pizza:
+                    added_items["titles"].append(half_pizza[0])
+                    added_items["prices"].append(half_pizza[1])
+                continue
             item.click()
+            try:
+                self.find_element(self.locators.PARAMETRIZE_PIZZA["small_size"], timeout=10).click()
+            except:
+                pass
+            title_in_dialog = self.find_element(self.locators.PARAMETRIZE_PIZZA["title_pizza"]).get_attribute('innerText')
+            price_in_dialog = self.find_element(self.locators.PARAMETRIZE_PIZZA["price_pizza"]).get_attribute('innerText')
+            price = int(re.search(r'\d+', price_in_dialog).group(0))
+            if self.add_to_basket(title_in_dialog):
+                added_items["titles"].append(title_in_dialog)
+                added_items["prices"].append(int(price))
+        self.delete_from_basket()
+        return added_items
+
+    def get_pizza_by_name(self, names):
+        """
+        Получаем список имен и добавляем пиццу в корзину
+
+        :param names: Список названий пицц
+        :return: list - Список цен
+        """
+        pizza_prices = []
+        for name in names:
+            if name == 'Пицца из половинок':
+                item = self.find_element(self.locators.PIZZA_BY_NAME(name))
+                half_pizza = self.half_pizza(item)
+                if half_pizza:
+                    pizza_prices.append(half_pizza[1])
+                continue
+            self.click(self.locators.PIZZA_SECTION)
+            self.click(self.locators.PIZZA_BY_NAME(name))
             try:
                 self.find_element(self.locators.PARAMETRIZE_PIZZA["small_size"], timeout=5).click()
             except:
                 pass
-            title_in_dialog = self.find_element(self.locators.PARAMETRIZE_PIZZA["title_pizza"]).text # Название пиццы в окне параметризации
-            price_in_dialog = self.find_element(self.locators.PARAMETRIZE_PIZZA["price_pizza"]).text
-            if self.add_to_basket(title_in_dialog):
-                added_items.append([title_in_dialog, price_in_dialog])
-        self.delete_from_basket()
-        return added_items
-
-    def get_random_item(self, locator):
-        """
-        Выбираем рандомную пиццу из общего списка
-        В тест возвращаем название и цену пиццы из главного меню, а также название и цену пиццы из окна параметризации
-        :param locator:
-        :return: tuple - (название из главного меню, цена из главного меню, название из окна, цена из окна)
-        """
-        items = self.count_items(locator)
-        curr_int = random.randint(1, items[0]-1)
-        while curr_int == 3:
-            curr_int = random.randint(1, items[0]-1)
-        current_item = items[1][curr_int]
-        self.move_to_element(current_item)
-        pizza_title, pizza_price = self.current_item_data(current_item)
-        current_item.click()
-        try:
-            self.find_element(self.locators.PARAMETRIZE_PIZZA["pizza_size"], timeout=2).click()
-        except:
-            pass
-        pizza_title = re.findall(r'(\w+.*\w+\!?)', pizza_title)
-        pizza_title = ' '.join(pizza_title)
-        pizza_title_in_dialog = self.find_element(self.locators.PARAMETRIZE_PIZZA["title_pizza"]).text # Название пиццы в окне параметризации
-        pizza_price_in_dialog = self.find_element(self.locators.PARAMETRIZE_PIZZA["price_pizza"]).text # Цена пиццы в окне параметризации
-        self.add_to_basket()
-        self.delete_from_basket()
-        return pizza_title, pizza_price, pizza_title_in_dialog, pizza_price_in_dialog
-
-    def get_number_pizza(self, locator, number):
-        """
-        Добавление определенного кол-ва пицц в корзину
-        :param locator:
-        :param number:
-        :return: pizza_list - список кортежей с названием и ценой добавленных пицц
-        """
-        items = self.count_items(locator)
-        titles = []
-        prices = []
-        for i in range(number):
-            curr_int = random.randint(1, items[0]-1)
-            while curr_int == 3:
-                curr_int = random.randint(1, items[0]-1)
-            current_item = items[1][curr_int]
-            self.move_to_element(current_item)
-            current_item.click()
-            title = self.find_element(self.locators.PARAMETRIZE_PIZZA["title_pizza"]).get_attribute('textContent') # Название пиццы в окне параметризации
-            title = re.findall(r'\w+\-*\w*\!*', title)
-            title = ' '.join(title)
-            price = self.find_element(self.locators.PARAMETRIZE_PIZZA["price_pizza"]).get_attribute('textContent') # Цена пиццы в окне параметризации
-            if self.add_to_basket():
-                titles.append(title)
-                prices.append(int(price))
-        self.delete_from_basket()
-        return titles, prices
-
-    def get_pizza_by_name(self, list):
-        """
-        Получаем список имен и добавляем пиццу в корзину
-        :param list:
-        :return:
-        """
-        pizza_prices = []
-        for name in list:
-            self.click(self.locators.PIZZA_SECTION)
-            try:
-                self.click(self.locators.COMMON_BY_NAME(name))
-                self.find_element(self.locators.PARAMETRIZE_PIZZA["pizza_size"], timeout=2).click()
-            except:
-                self.click(self.locators.SPECIAL_BY_NAME(name))
             price = self.find_element(self.locators.PARAMETRIZE_PIZZA["price_pizza"]).get_attribute('textContent')
-            if self.add_to_basket():
-                pizza_prices.append(price)
+            if self.add_to_basket(name):
+                pizza_prices.append(int(price))
         self.delete_from_basket()
         return pizza_prices
 

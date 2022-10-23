@@ -1,4 +1,5 @@
 import pytest
+import json
 from ui.pages.main_page import MainPage
 
 
@@ -19,3 +20,11 @@ class BaseCase:
         """
         self.logging.debug(f'Открытие основной страницы: {self.main_page.__class__.__name__}')
         self.main_page.click(self.main_page.locators.CHOOSE_REGION(region=self.config["region"]))
+        self.main_page.find_element(self.main_page.locators.NAV_BAR["Пицца"]).click()
+
+    @pytest.fixture(params=[1, 'config'])
+    def prepare_count(self, request):
+        if request.param == 'config':
+            request.param = self.config["add_pizza_count"]
+        return request.param
+
