@@ -20,7 +20,7 @@ class MainPage(BasePage):
         new_items = []
         for i in range(num):
             rand_int = random.randint(0, len(items)-1)
-            self.logging.debug(f'Рандомно выбранный индекс: {rand_int+1}')
+            self.logger.debug(f'Рандомно выбранный индекс: {rand_int+1}')
             new_items.append(items[rand_int])
         return new_items
 
@@ -35,7 +35,7 @@ class MainPage(BasePage):
         return self.find_elements(new_locator)
 
     def add_to_basket(self, title_in_dialog):
-        self.logging.debug(f'Добавление товара в корзину: {title_in_dialog}')
+        self.logger.debug(f'Добавление товара в корзину: {title_in_dialog}')
         """
         В Google Chrome при добавлении 3 и 5 пицц происходит баг,
         на запрос возвращается 400 статус код и пицца не добавляется в корзину,
@@ -51,13 +51,13 @@ class MainPage(BasePage):
         try:
             self.click(self.locators.ADD_TO_BASKET)
             self.wait(timeout=10).until(ES.invisibility_of_element_located(self.locators.PIZZA_DIALOG))
-            self.logging.debug(f'Товар был добавлен в корзину: {title_in_dialog}')
+            self.logger.debug(f'Товар был добавлен в корзину: {title_in_dialog}')
             return True
         except:
             parametrize_pizza = self.find_element(self.locators.PIZZA_DIALOG)
             close = self.find_child_element(parametrize_pizza, self.locators.PARAMETRIZE_PIZZA["close_icon"])
             close.click()
-            self.logging.debug(f'Товар не был добавлен в корзину: {title_in_dialog}')
+            self.logger.debug(f'Товар не был добавлен в корзину: {title_in_dialog}')
             return False
 
     def current_item_data(self, items):
@@ -85,7 +85,7 @@ class MainPage(BasePage):
         """
         elem = self.find_element(self.locators.BASKET["total_sum"])
         total_sum = re.findall(r'\d+', elem.get_attribute('textContent'))
-        self.logging.debug(f'Получение полной суммы: {"".join(total_sum)}')
+        self.logger.debug(f'Получение полной суммы: {"".join(total_sum)}')
         return ''.join(total_sum)
 
     def delete_from_basket(self):

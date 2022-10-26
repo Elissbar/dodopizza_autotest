@@ -6,8 +6,8 @@ class TestSuite(BaseCase):
     def test_case_0(self):
         current_region = self.main_page.find_element(self.main_page.locators.CURRENT_REGION).text
         pizza_count = self.main_page.count_items(self.main_page.locators.PIZZA_SECTION)
-        self.logging.debug(f'Текущий регион: {current_region}.')
-        self.logging.debug(f'Кол-во пицц: {pizza_count}.')
+        self.logger.debug(f'Текущий регион: {current_region}.')
+        self.logger.debug(f'Кол-во пицц: {len(pizza_count)}.')
         assert "https://dodopizza.ru/moscow" in self.driver.current_url
         assert current_region == self.config["region"]
         assert len(pizza_count) == self.config["total_pizza_count"]
@@ -23,8 +23,8 @@ class TestSuite(BaseCase):
         except:
             count = 0
         items_in_basket = self.main_page.items_from_basket()
-        self.logging.debug(f'Пицца, которая была добавлена: {", ".join(titles)}')
-        self.logging.debug(f'Пицца, которая есть в корзине: {", ".join(items_in_basket)}')
+        self.logger.debug(f'Пицца, которая была добавлена: {", ".join(titles)}')
+        self.logger.debug(f'Пицца, которая есть в корзине: {", ".join(items_in_basket)}')
         assert "https://dodopizza.ru/moscow" in self.driver.current_url
         for title in titles:
             assert title in items_in_basket
@@ -40,8 +40,8 @@ class TestSuite(BaseCase):
             count = 0
         items_in_basket = self.main_page.items_from_basket()
         total_sum = int(self.main_page.get_total_sum())
-        self.logging.debug(f'Список пицц, которые нужно добавить: {", ".join(pizza_names)}')
-        self.logging.debug(f'Пицца, которая есть в корзине: {", ".join(items_in_basket)}')
+        self.logger.debug(f'Список пицц, которые нужно добавить: {", ".join(pizza_names)}')
+        self.logger.debug(f'Пицца, которая есть в корзине: {", ".join(items_in_basket)}')
         assert "https://dodopizza.ru/moscow" in self.driver.current_url
         assert int(count) == len(pizza_names)
         for name in pizza_names:

@@ -74,25 +74,26 @@ def make_screenshot(config, driver, test_dir):
 
 @pytest.fixture(scope='function')
 def logger(config, test_dir):
-    log_formatter = logging.Formatter('%(asctime)s - %(filename)-s - %10(levelname)-s: %(message)s')
-    log_file = os.path.join(test_dir, 'test.log')
-
-    # log_level = logging.DEBUG if config['debug_log'] else logging.INFO
-    log_level = logging.DEBUG
-
-    file_handler = logging.FileHandler(log_file, 'w')
-    file_handler.setFormatter(log_formatter)
-    file_handler.setLevel(log_level)
-
+    """
+    Фикстура, отвечающая за логирование тестов
+    """
     log = logging.getLogger('test')
-    log.propagate = False
-    log.setLevel(log_level)
+
+    path = os.path.join(test_dir, 'log_file.txt')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler = logging.FileHandler(path, 'w')
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(logging.DEBUG)
+
     log.addHandler(file_handler)
+    log.setLevel(logging.DEBUG)
+    log.propagate = False
 
     yield log
 
     for handler in log.handlers:
         handler.close()
+        log.removeHandler(handler)
 
 
 
