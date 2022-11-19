@@ -31,7 +31,7 @@ class BasePage:
         return self.wait(timeout).until(ES.presence_of_all_elements_located(locator))
 
     def find_child_element(self, parent_element, child_locator):
-        self.logger.debug(f'Поиск дочернего элемента: {child_locator[1]}, в элементе: {parent_element}')
+        self.logger.debug(f'Поиск дочернего элемента: {child_locator[1]}')
         return WebDriverWait(parent_element, 15).until(ES.presence_of_element_located(child_locator))
 
     def move_to_element(self, element):
@@ -41,10 +41,10 @@ class BasePage:
     def click(self, locator=None):
         for i in range(CLICK_RETRY):
             try:
-                self.logger.debug(f'Клик на элемент: {locator[1]}')
                 self.find_element(locator)
                 elem = self.wait().until(ES.element_to_be_clickable(locator))
                 self.move_to_element(elem)
+                self.logger.debug(f'Клик на элемент: {locator[1]}')
                 elem.click()
                 return
             except:
