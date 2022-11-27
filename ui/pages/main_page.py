@@ -1,5 +1,3 @@
-import time
-
 from ui.pages.base_page import BasePage
 from ui.locators.main_page_locators import MainPageLocators
 from selenium.webdriver.support import expected_conditions as ES
@@ -158,7 +156,7 @@ class MainPage(BasePage):
         price = self.find_element(self.locators.PARAMETRIZE_PIZZA["price_pizza"]).text
         # Если пицца из половинок добавилась, возвращаем название пиццы, состоящее из половинок
         if self.add_to_basket(' + '.join(full_title)):
-            return ' + '.join(full_title), int(price)
+            return ' + '.join(full_title), int(price.replace(' ', ''))
         return False
 
     def add_items_count(self, items):
@@ -197,7 +195,6 @@ class MainPage(BasePage):
     def get_pizza_by_name(self, names):
         """
         Получаем список имен и добавляем пиццу в корзину
-
         :param names: Список названий пицц
         :return: list - Список цен
         """
@@ -219,13 +216,4 @@ class MainPage(BasePage):
             if self.add_to_basket(name):
                 pizza_prices.append(int(price))
         self.delete_from_basket()
-        time.sleep(3)
         return pizza_prices
-
-
-
-
-
-
-
-

@@ -80,7 +80,7 @@ def logger(config, test_dir):
     log = logging.getLogger('test')
 
     path = os.path.join(test_dir, 'log_file.txt')
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(funcName)-21s - %(lineno)d - %(message)s')
     file_handler = logging.FileHandler(path, 'w')
     file_handler.setFormatter(formatter)
     file_handler.setLevel(logging.DEBUG)
@@ -94,6 +94,3 @@ def logger(config, test_dir):
     for handler in log.handlers:
         handler.close()
         log.removeHandler(handler)
-
-
-

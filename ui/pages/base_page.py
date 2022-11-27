@@ -51,7 +51,3 @@ class BasePage:
                 self.logger.debug(f'Не удалось нажать на элемент: {locator[1]}')
                 if i == CLICK_RETRY-1:
                     raise
-
-
-
-
